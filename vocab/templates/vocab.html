@@ -80,36 +80,60 @@
 <br />
 <div class="row">
   <div class="col-xs-6 text-center">
-  <form id="entry" method="POST" action="/_check">
     <label for="attempt">Word:</label>
     <input id="attempt" name="attempt" type="text" width="15"
       autocomplete="off"  autofocus />
-    <input type="submit" name="try" />
-  </form>
+  </div>
 </div></div>
 
 <br />
 
-{% if session.matches|length is not equalto 0  %}
-<h2>You found </h2>
-<p id="results">
+<h2>You found:</h2>
+<ul id="results" style="list-style-type: none; padding-left: 0;">
   {% for match in session.matches %}
-  {{ match }} 
+    <li>{{ match }}</li>
   {% endfor %}
-</p>
-{% endif %}
+</ul>
+
+<div class="row">
+  <div class="col-xs-6 text-center">
+    <p class="message" id="message" style="color: red;"></p>
+  </div>
+</div>
 
 
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <!-- Mismatch, already found, etc. "flashed" from Python -->
-    {% for message in messages %}
-      <p class="message">{{ message }}</p>
-    {% endfor %}
-  {% endif %}
-{% endwith %}
+<!-- This is the Ajax code that sends a GET request to the Flask server whenever the user types in the input box. -->
+<!-- This works off updating on the keyup event, so it will send a request every time the user releases a key. -->
+<script type="text/javascript">
+  $("#attempt").on("keyup", function(event) {
+      var typedText = $("#attempt").val();
+
+      // If the box is empty, clear any error messages and stop here BEFORE sending a request to the server. Saves us on unnecessary messages when the user clears the input box.
+      if (typedText.trim() === "") {
+          $("#message").text("");
+          return;
+      }
+
+      // Send background GET request to Flask's /_check route
+      $.getJSON("/_check", { text: typedText }, function(data) {
+
+          if (data.result.matched) {
+              // Successfully found a word: append to results, clear input & errors
+              $("#results").append(" " + data.result.word);
+              $("#attempt").val("");
+              $("#message").text("");
+          } else if (data.result.message) {
+              // Show error message dynamically
+              $("#message").text(data.result.message);
+          }
+
+          // Check if win condition is met
+          if (data.result.success) {
+              window.location.href = "/success";
+          }
+      });
+  });
+</script>
 
 
-
- </div> <!-- container -->
 </body> </html>
